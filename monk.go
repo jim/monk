@@ -1,4 +1,4 @@
-package main
+package monk
 
 import "os"
 import "fmt"
@@ -16,8 +16,8 @@ type Asset struct {
 }
 
 type Resolution struct {
-	resolved []string
-	seen     []string
+	Resolved []string
+	Seen     []string
 }
 
 type File struct {
@@ -120,25 +120,9 @@ func NewFileCache() *FileCache {
 // LogicalPath
 // Path
 
-func main() {
-
-	cache := NewFileCache()
-
-	r := &Resolution{}
-	r.resolve("a.js", cache)
-
-	for _, resolved := range r.resolved {
-		fmt.Printf("%s ", resolved)
-	}
-	fmt.Println()
-
-	built := build(r, cache)
-	fmt.Println(built)
-}
-
-func build(r *Resolution, cache *FileCache) string {
-	contents := make([]string, len(r.resolved))
-	for _, logicalPath := range r.resolved {
+func Build(r *Resolution, cache *FileCache) string {
+	contents := make([]string, len(r.Resolved))
+	for _, logicalPath := range r.Resolved {
 		content := cache.lookup(logicalPath)
 		header := fmt.Sprintf("/* %s */\n", logicalPath)
 		contents = append(contents, header, content)
@@ -147,23 +131,22 @@ func build(r *Resolution, cache *FileCache) string {
 	return strings.Join(contents, "\n")
 }
 
-func (r *Resolution) resolve(assetPath string, cache *FileCache) {
-	fmt.Println(assetPath)
-	r.seen = append(r.seen, assetPath)
+func (r *Resolution) Resolve(assetPath string, cache *FileCache) {
+	r.Seen = append(r.Seen, assetPath)
 
 	contents := cache.lookup(assetPath)
 	e := edges(string(contents))
 
 	for _, edge := range e {
-		if !contains(edge, r.resolved) {
-			if contains(edge, r.seen) {
+		if !contains(edge, r.Resolved) {
+			if contains(edge, r.Seen) {
 				log.Fatal("circular dependency detected")
 			}
-			r.resolve(edge, cache)
+			r.Resolve(edge, cache)
 		}
 	}
 
-	r.resolved = append(r.resolved, assetPath)
+	r.Resolved = append(r.Resolved, assetPath)
 }
 
 func contains(needle string, haystack []string) bool {
