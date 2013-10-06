@@ -68,17 +68,16 @@ func main() {
 	}
 	fmt.Println()
 
-	built := build(r)
+	built := build(r, cache)
 	fmt.Println(built)
 }
 
-func build(r *Resolution) string {
+func build(r *Resolution, cache *FileCache) string {
 	contents := make([]string, len(r.resolved))
-	for _, assetPath := range r.resolved {
-		absPath := path.Join("assets", assetPath)
-		bytes, _ := ioutil.ReadFile(absPath)
-		header := fmt.Sprintf("/* %s */\n", absPath)
-		contents = append(contents, header, string(bytes))
+	for _, logicalPath := range r.resolved {
+		content := cache.lookup(logicalPath)
+		header := fmt.Sprintf("/* %s */\n", logicalPath)
+		contents = append(contents, header, content)
 	}
 
 	return strings.Join(contents, "\n")
