@@ -1,12 +1,14 @@
 package monk
 
-import "os"
-import "fmt"
-import "io/ioutil"
-import "path"
-import "log"
-import "strings"
-import "regexp"
+import (
+	"fmt"
+	"io/ioutil"
+	"log"
+	"os"
+	"path"
+	"regexp"
+	"strings"
+)
 
 /*os.FileInfo*/
 type Asset struct {
