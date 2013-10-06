@@ -38,15 +38,79 @@ func (fc *FileCache) lookup(logicalPath string) string {
 	}
 	absPath := path.Join("assets", logicalPath)
 
-	bytes, err := ioutil.ReadFile(absPath)
-	if err != nil {
-		log.Fatal(err)
+	info, err := os.Stat(absPath)
+
+	if os.IsNotExist(err) {
+		p, err := searchDirectory("assets", logicalPath)
+		if err != nil {
+			log.Fatal(err)
+		}
+		absPath = p
 	}
-	info, _ := os.Stat(absPath)
-	stringified := string(bytes)
-	newFile := &File{info, stringified}
+
+	content, _ := loadFile(absPath)
+
+	newFile := &File{info, content}
 	fc.Store[logicalPath] = newFile
-	return stringified
+	return content
+}
+
+// Find if a matching path is in a directory. If so, returns the full path to the
+// file on disk.
+func searchDirectory(dirPath string, logicalPath string) (string, error) {
+	files, err := ioutil.ReadDir("assets")
+	if os.IsNotExist(err) {
+		return "", err
+	}
+
+	pattern := fmt.Sprintf(`^%s[\.\w+]+`, regexp.QuoteMeta(logicalPath))
+	r, _ := regexp.Compile(pattern)
+	for _, fileInfo := range files {
+		name := fileInfo.Name()
+		if r.MatchString(name) {
+			return path.Join(dirPath, name), nil
+		}
+	}
+	return "", fmt.Errorf("Could not find a file matching %s/%s", dirPath, logicalPath)
+}
+
+func loadFile(filePath string) (string, error) {
+	bytes, _ := ioutil.ReadFile(filePath)
+	content := string(bytes)
+
+	exts := strings.Split(path.Base(filePath), ".")
+
+	// Nothing elce to do if there aren't additional extensions
+	if len(exts) < 3 {
+		return content, nil
+	}
+
+	exts = exts[2:]
+
+	// Reverse the order of remaining extensions
+	for i, j := 0, len(exts)-1; i < j; i, j = i+1, j-1 {
+		exts[i], exts[j] = exts[j], exts[i]
+	}
+
+	for _, ext := range exts {
+		filtered, err := filter(content, ext)
+		if err != nil {
+			return "", err
+		}
+		content = filtered
+	}
+
+	return content, nil
+}
+
+func filter(content string, extension string) (string, error) {
+	switch extension {
+	case "bs":
+		return strings.Replace(content, "a", "b", -1), nil
+	case "fs":
+		return strings.Replace(content, "f", "x", -1), nil
+	}
+	return content, nil
 }
 
 func NewFileCache() *FileCache {
