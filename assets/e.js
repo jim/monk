@@ -1,1 +1,1 @@
-//= require f.js
+//= require f

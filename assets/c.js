@@ -1,2 +1,2 @@
-//= require d.js
-//= require e.js
+//= require d
+//= require e

@@ -1,4 +1,4 @@
-//= require c.js
-//= require e.js
+//= require c
+//= require e
 
 fff

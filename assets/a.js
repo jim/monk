@@ -1,2 +1,2 @@
-//= require b.js
-//= require d.js
+//= require b
+//= require d
