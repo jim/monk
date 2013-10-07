@@ -8,6 +8,8 @@ import (
 	"path"
 	"regexp"
 	"strings"
+  "bytes"
+  "os/exec"
 )
 
 /*os.FileInfo*/
@@ -111,8 +113,19 @@ func filter(content string, extension string) (string, error) {
 		return strings.Replace(content, "a", "b", -1), nil
 	case "fs":
 		return strings.Replace(content, "f", "x", -1), nil
+  case "coffee":
+    return coffeeFilter(content)
 	}
 	return content, nil
+}
+
+func coffeeFilter(content string) (string, error) {
+	cmd := exec.Command("coffee", "-s", "-c")
+	cmd.Stdin = strings.NewReader(content)
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err := cmd.Run()
+  return out.String(), err
 }
 
 func NewFileCache() *FileCache {
