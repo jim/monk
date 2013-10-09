@@ -2,7 +2,6 @@ package monk
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path"
@@ -13,6 +12,7 @@ import (
 )
 
 type AssetCache struct {
+  fs fileSystem
 	Store map[string]*Asset
 }
 
@@ -21,8 +21,8 @@ type Asset struct {
 	Content string
 }
 
-func NewAssetCache() *AssetCache {
-	return &AssetCache{make(map[string]*Asset)}
+func NewAssetCache(fs fileSystem) *AssetCache {
+	return &AssetCache{fs, make(map[string]*Asset)}
 }
 
 // Return the contents of a file based on its logical path. Loads the content from
@@ -34,17 +34,17 @@ func (fc *AssetCache) lookup(logicalPath string) string {
 	}
 	absPath := path.Join("assets", logicalPath)
 
-	info, err := os.Stat(absPath)
+	info, err := fc.fs.Stat(absPath)
 
 	if os.IsNotExist(err) {
-		p, err := searchDirectory("assets", logicalPath)
+		p, err := fc.searchDirectory("assets", logicalPath)
 		if err != nil {
 			log.Fatal(err)
 		}
 		absPath = p
 	}
 
-	content, _ := loadAsset(absPath)
+	content, _ := fc.loadAsset(absPath)
 
 	newAsset := &Asset{info, content}
 	fc.Store[logicalPath] = newAsset
@@ -53,8 +53,8 @@ func (fc *AssetCache) lookup(logicalPath string) string {
 
 // Find if a matching path is in a directory. If so, returns the full path to the
 // file on disk.
-func searchDirectory(dirPath string, logicalPath string) (string, error) {
-	files, err := ioutil.ReadDir("assets")
+func (fc *AssetCache) searchDirectory(dirPath string, logicalPath string) (string, error) {
+	files, err := fc.fs.ReadDir("assets")
 	if os.IsNotExist(err) {
 		return "", err
 	}
@@ -73,8 +73,8 @@ func searchDirectory(dirPath string, logicalPath string) (string, error) {
 // Loads a file from filePath, filtering its contents through a series filters based
 // on the additional extensions in the filename. The first extension is assumed to
 // be the final type of the file.
-func loadAsset(filePath string) (string, error) {
-	bytes, _ := ioutil.ReadFile(filePath)
+func (fc *AssetCache) loadAsset(filePath string) (string, error) {
+	bytes, _ := fc.fs.ReadFile(filePath)
 	content := string(bytes)
 
 	exts := strings.Split(path.Base(filePath), ".")
@@ -110,12 +110,23 @@ func filter(content string, extension string) (string, error) {
 		return strings.Replace(content, "f", "x", -1), nil
   case "coffee":
     return coffeeFilter(content)
+  case "less":
+    return lessFilter(content)
 	}
 	return content, nil
 }
 
 func coffeeFilter(content string) (string, error) {
 	cmd := exec.Command("coffee", "-s", "-c")
+	cmd.Stdin = strings.NewReader(content)
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err := cmd.Run()
+  return out.String(), err
+}
+
+func lessFilter(content string) (string, error) {
+	cmd := exec.Command("lessc", "-")
 	cmd.Stdin = strings.NewReader(content)
 	var out bytes.Buffer
 	cmd.Stdout = &out
