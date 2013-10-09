@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	cache := monk.NewFileCache()
+	cache := monk.NewAssetCache()
 
 	r := &monk.Resolution{}
 	r.Resolve("a.js", cache)

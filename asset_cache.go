@@ -12,17 +12,22 @@ import (
   "os/exec"
 )
 
-type FileCache struct {
-	Store map[string]*File
+type AssetCache struct {
+	Store map[string]*Asset
 }
 
-func NewFileCache() *FileCache {
-	return &FileCache{make(map[string]*File)}
+type Asset struct {
+	os.FileInfo
+	Content string
+}
+
+func NewAssetCache() *AssetCache {
+	return &AssetCache{make(map[string]*Asset)}
 }
 
 // Return the contents of a file based on its logical path. Loads the content from
 // disk if needed.
-func (fc *FileCache) lookup(logicalPath string) string {
+func (fc *AssetCache) lookup(logicalPath string) string {
 	file, ok := fc.Store[logicalPath]
 	if ok {
 		return file.Content
@@ -39,10 +44,10 @@ func (fc *FileCache) lookup(logicalPath string) string {
 		absPath = p
 	}
 
-	content, _ := loadFile(absPath)
+	content, _ := loadAsset(absPath)
 
-	newFile := &File{info, content}
-	fc.Store[logicalPath] = newFile
+	newAsset := &Asset{info, content}
+	fc.Store[logicalPath] = newAsset
 	return content
 }
 
@@ -68,7 +73,7 @@ func searchDirectory(dirPath string, logicalPath string) (string, error) {
 // Loads a file from filePath, filtering its contents through a series filters based
 // on the additional extensions in the filename. The first extension is assumed to
 // be the final type of the file.
-func loadFile(filePath string) (string, error) {
+func loadAsset(filePath string) (string, error) {
 	bytes, _ := ioutil.ReadFile(filePath)
 	content := string(bytes)
 

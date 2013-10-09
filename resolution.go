@@ -5,10 +5,15 @@ import (
 	"regexp"
 )
 
+type Resolution struct {
+	Resolved []string
+	Seen     []string
+}
+
 // Resolve the asset at assetPath and its dependencies.
 //
 // TODO should return error
-func (r *Resolution) Resolve(assetPath string, cache *FileCache) {
+func (r *Resolution) Resolve(assetPath string, cache *AssetCache) {
 	r.Seen = append(r.Seen, assetPath)
 
 	contents := cache.lookup(assetPath)
