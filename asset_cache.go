@@ -7,8 +7,6 @@ import (
 	"path"
 	"regexp"
 	"strings"
-  "bytes"
-  "os/exec"
 )
 
 type AssetCache struct {
@@ -44,7 +42,10 @@ func (fc *AssetCache) lookup(logicalPath string) string {
 		absPath = p
 	}
 
-	content, _ := fc.loadAsset(absPath)
+  content, err := fc.loadAsset(absPath)
+  if err != nil {
+    log.Fatal(err)
+  }
 
 	newAsset := &Asset{info, content}
 	fc.Store[logicalPath] = newAsset
@@ -102,34 +103,3 @@ func (fc *AssetCache) loadAsset(filePath string) (string, error) {
 	return content, nil
 }
 
-func filter(content string, extension string) (string, error) {
-	switch extension {
-	case "bs":
-		return strings.Replace(content, "a", "b", -1), nil
-	case "fs":
-		return strings.Replace(content, "f", "x", -1), nil
-  case "coffee":
-    return coffeeFilter(content)
-  case "less":
-    return lessFilter(content)
-	}
-	return content, nil
-}
-
-func coffeeFilter(content string) (string, error) {
-	cmd := exec.Command("coffee", "-s", "-c")
-	cmd.Stdin = strings.NewReader(content)
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	err := cmd.Run()
-  return out.String(), err
-}
-
-func lessFilter(content string) (string, error) {
-	cmd := exec.Command("lessc", "-")
-	cmd.Stdin = strings.NewReader(content)
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	err := cmd.Run()
-  return out.String(), err
-}
