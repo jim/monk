@@ -17,7 +17,7 @@ func (r *Resolution) Resolve(assetPath string, cache *AssetCache) {
 	r.Seen = append(r.Seen, assetPath)
 
 	contents := cache.lookup(assetPath)
-	e := edges(string(contents))
+	e := findRequires(string(contents))
 
 	for _, edge := range e {
 		if !contains(edge, r.Resolved) {
@@ -44,8 +44,8 @@ func contains(needle string, haystack []string) bool {
 	return found
 }
 
-func edges(fileContents string) []string {
-	r, err := regexp.Compile(`//= require ([\w\.]+)`)
+func findRequires(fileContents string) []string {
+	r, err := regexp.Compile(`//= require ['"]?([\w\.]+)["']?`)
 	if err != nil {
 		panic(err)
 	}
