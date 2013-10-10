@@ -15,7 +15,7 @@ func main() {
 	_, filepath, _, _ := runtime.Caller(0)
 	dir := path.Join(path.Dir(filepath), "../assets")
 
-  cache.SearchPath(dir)
+	cache.SearchPath(dir)
 
 	r.Resolve("a.js", cache)
 
