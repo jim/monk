@@ -16,7 +16,7 @@ type Resolution struct {
 func (r *Resolution) Resolve(assetPath string, cache *AssetCache) {
 	r.Seen = append(r.Seen, assetPath)
 
-	contents := cache.lookup(assetPath)
+	contents, _ := cache.lookup(assetPath)
 	e := findRequires(string(contents))
 
 	for _, edge := range e {
@@ -59,4 +59,3 @@ func findRequires(fileContents string) []string {
 
 	return requires
 }
-

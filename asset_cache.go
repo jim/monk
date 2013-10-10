@@ -5,13 +5,15 @@ import (
 	"log"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"strings"
 )
 
 type AssetCache struct {
-  fs fileSystem
-	Store map[string]*Asset
+	fs          fileSystem
+	Store       map[string]*Asset
+	SearchPaths []string
 }
 
 type Asset struct {
@@ -20,44 +22,74 @@ type Asset struct {
 }
 
 func NewAssetCache(fs fileSystem) *AssetCache {
-	return &AssetCache{fs, make(map[string]*Asset)}
+	return &AssetCache{fs, make(map[string]*Asset), []string{}}
+}
+
+// Append a path to the list of asset paths to be searched for assets.
+func (cache *AssetCache) SearchPath(dirpath string) (*AssetCache, error) {
+	abs, err := filepath.Abs(dirpath)
+	if err != nil {
+		return cache, err
+	}
+	cache.SearchPaths = append(cache.SearchPaths, abs)
+	return cache, nil
 }
 
 // Return the contents of a file based on its logical path. Loads the content from
 // disk if needed.
-func (fc *AssetCache) lookup(logicalPath string) string {
+func (fc *AssetCache) lookup(logicalPath string) (string, error) {
 	file, ok := fc.Store[logicalPath]
 	if ok {
-		return file.Content
+		return file.Content, nil
 	}
-	absPath := path.Join("assets", logicalPath)
 
-	info, err := fc.fs.Stat(absPath)
+	asset, err := fc.findAssetInSearchPaths(logicalPath)
 
-	if os.IsNotExist(err) {
-		p, err := fc.searchDirectory("assets", logicalPath)
+	if err != nil {
+		return "", err
+	}
+
+	fc.Store[logicalPath] = asset
+	return asset.Content, nil
+}
+
+func (ac *AssetCache) findAssetInSearchPaths(logicalPath string) (*Asset, error) {
+
+	if len(ac.SearchPaths) == 0 {
+		return nil, fmt.Errorf("No search paths have been defined.")
+	}
+
+	for _, searchPath := range ac.SearchPaths {
+		absPath := path.Join(searchPath, logicalPath)
+
+		// Look for exact match
+		info, err := ac.fs.Stat(absPath)
+		if os.IsNotExist(err) {
+
+			// Search the entire directory for a matching base name
+			asset, err := ac.searchDirectory("assets", logicalPath)
+			if err != nil {
+				continue
+			}
+			return asset, nil
+		}
+
+		// handle exact match
+		content, err := ac.loadAsset(absPath)
 		if err != nil {
 			log.Fatal(err)
 		}
-		absPath = p
+
+		return &Asset{info, content}, nil
 	}
 
-  content, err := fc.loadAsset(absPath)
-  if err != nil {
-    log.Fatal(err)
-  }
-
-	newAsset := &Asset{info, content}
-	fc.Store[logicalPath] = newAsset
-	return content
+	return nil, fmt.Errorf("Could not find a file matching %q in %v", logicalPath, ac.SearchPaths)
 }
 
-// Find if a matching path is in a directory. If so, returns the full path to the
-// file on disk.
-func (fc *AssetCache) searchDirectory(dirPath string, logicalPath string) (string, error) {
-	files, err := fc.fs.ReadDir("assets")
+func (ac *AssetCache) searchDirectory(dirPath string, logicalPath string) (*Asset, error) {
+	files, err := ac.fs.ReadDir("assets")
 	if os.IsNotExist(err) {
-		return "", err
+		return nil, err
 	}
 
 	pattern := fmt.Sprintf(`^%s[\.\w+]+`, regexp.QuoteMeta(logicalPath))
@@ -65,17 +97,24 @@ func (fc *AssetCache) searchDirectory(dirPath string, logicalPath string) (strin
 	for _, fileInfo := range files {
 		name := fileInfo.Name()
 		if r.MatchString(name) {
-			return path.Join(dirPath, name), nil
+
+			absPath := path.Join(dirPath, name)
+			content, err := ac.loadAsset(absPath)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			return &Asset{fileInfo, content}, nil
 		}
 	}
-	return "", fmt.Errorf("Could not find a file matching %s/%s", dirPath, logicalPath)
+	return nil, fmt.Errorf("Could not find a file matching %s/%s", dirPath, logicalPath)
 }
 
 // Loads a file from filePath, filtering its contents through a series filters based
 // on the additional extensions in the filename. The first extension is assumed to
 // be the final type of the file.
-func (fc *AssetCache) loadAsset(filePath string) (string, error) {
-	bytes, _ := fc.fs.ReadFile(filePath)
+func (ac *AssetCache) loadAsset(filePath string) (string, error) {
+	bytes, _ := ac.fs.ReadFile(filePath)
 	content := string(bytes)
 
 	exts := strings.Split(path.Base(filePath), ".")
@@ -102,4 +141,3 @@ func (fc *AssetCache) loadAsset(filePath string) (string, error) {
 
 	return content, nil
 }
-
