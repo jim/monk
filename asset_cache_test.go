@@ -94,3 +94,22 @@ func TestLoadAsset(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func TestSearchDirectory(t *testing.T) {
+	fs := NewTestFS()
+	ac := NewAssetCache(fs)
+	assetContent := "//= require a"
+	assetPath := "assets/simple.js"
+	query := "simple"
+
+	fs.File(assetPath, assetContent)
+	ac.SearchPath("assets")
+
+	if asset, err := ac.searchDirectory("assets", query); err == nil {
+		if asset.Content != assetContent {
+			t.Errorf("searchDirectory(%q), want %q, got %q", query, assetContent, assetContent)
+		}
+	} else {
+		t.Error(err)
+	}
+}
