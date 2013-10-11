@@ -1,7 +1,7 @@
 package monk
 
 import (
-	"log"
+	"fmt"
 	"regexp"
 )
 
@@ -13,7 +13,7 @@ type Resolution struct {
 // Resolve the asset at assetPath and its dependencies.
 //
 // TODO should return error
-func (r *Resolution) Resolve(assetPath string, cache *AssetCache) {
+func (r *Resolution) Resolve(assetPath string, cache *AssetCache) error {
 	r.Seen = append(r.Seen, assetPath)
 
 	contents, _ := cache.lookup(assetPath)
@@ -22,13 +22,14 @@ func (r *Resolution) Resolve(assetPath string, cache *AssetCache) {
 	for _, edge := range e {
 		if !contains(edge, r.Resolved) {
 			if contains(edge, r.Seen) {
-				log.Fatal("circular dependency detected")
+				return fmt.Errorf("circular dependency detected: %s <-> %s", assetPath, edge)
 			}
 			r.Resolve(edge, cache)
 		}
 	}
 
 	r.Resolved = append(r.Resolved, assetPath)
+	return nil
 }
 
 func contains(needle string, haystack []string) bool {

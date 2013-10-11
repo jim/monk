@@ -114,7 +114,11 @@ func (ac *AssetCache) searchDirectory(dirPath string, logicalPath string) (*Asse
 // on the additional extensions in the filename. The first extension is assumed to
 // be the final type of the file.
 func (ac *AssetCache) loadAsset(filePath string) (string, error) {
-	bytes, _ := ac.fs.ReadFile(filePath)
+	bytes, err := ac.fs.ReadFile(filePath)
+	if err != nil {
+		return "", err
+	}
+
 	content := string(bytes)
 
 	exts := strings.Split(path.Base(filePath), ".")
