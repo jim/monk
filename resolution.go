@@ -2,7 +2,6 @@ package monk
 
 import (
 	"fmt"
-	"regexp"
 )
 
 type Resolution struct {
@@ -16,10 +15,9 @@ type Resolution struct {
 func (r *Resolution) Resolve(assetPath string, cache *AssetCache) error {
 	r.Seen = append(r.Seen, assetPath)
 
-	contents, _ := cache.lookup(assetPath)
-	e := findRequires(string(contents))
+	asset, _ := cache.lookup(assetPath)
 
-	for _, edge := range e {
+	for _, edge := range asset.Dependencies {
 		if !contains(edge, r.Resolved) {
 			if contains(edge, r.Seen) {
 				return fmt.Errorf("circular dependency detected: %s <-> %s", assetPath, edge)
@@ -43,20 +41,4 @@ func contains(needle string, haystack []string) bool {
 	}
 
 	return found
-}
-
-func findRequires(fileContents string) []string {
-	r, err := regexp.Compile(`//= require ['"]?([\w\.]+)["']?`)
-	if err != nil {
-		panic(err)
-	}
-
-	matches := r.FindAllStringSubmatch(fileContents, -1)
-	requires := make([]string, 0)
-
-	for _, m := range matches {
-		requires = append(requires, m[1])
-	}
-
-	return requires
 }

@@ -8,18 +8,18 @@ import (
 	"strings"
 )
 
-type AssetFilter func (content string, extension string) (string, error)
+type AssetFilter func(content string, extension string) (string, error)
 
 var filters = map[string]AssetFilter{}
 
 func init() {
-  AppendFilter("coffee", CoffeeFilter)
-  AppendFilter("less", LessFilter)
-  AppendFilter("tmpl", TemplateFilter)
+	AppendFilter("coffee", CoffeeFilter)
+	AppendFilter("less", LessFilter)
+	AppendFilter("tmpl", TemplateFilter)
 }
 
 func AppendFilter(extension string, filter AssetFilter) {
-  filters[extension] = filter
+	filters[extension] = filter
 }
 
 func CoffeeFilter(content string, extension string) (string, error) {
@@ -62,10 +62,10 @@ func TemplateFilter(content string, extension string) (string, error) {
 }
 
 func ApplyFilters(content string, extension string) (string, error) {
-  for ext, filter := range filters {
-    if ext == extension {
-      return filter(content, extension)
-    }
-  }
-  return "", fmt.Errorf("could not find a filter for extension: %q", extension)
+	for ext, filter := range filters {
+		if ext == extension {
+			return filter(content, extension)
+		}
+	}
+	return "", fmt.Errorf("could not find a filter for extension: %q", extension)
 }

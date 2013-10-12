@@ -1,22 +1,22 @@
 package monk
 
 import (
-  "testing"
+	"testing"
 )
 
 func TestLessFilter(t *testing.T) {
-  before := `.foo {
+	before := `.foo {
     .bar {
       width: 100%;
     }
   }`
-  after := ".foo .bar{width:100%}\n"
+	after := ".foo .bar{width:100%}\n"
 
-  if filtered, err := LessFilter(before, "less"); err == nil {
-    if filtered != after {
-      t.Errorf("LessFilter(%q) = %q, want %q", before, filtered, after)
-    }
-  } else {
-    t.Error(err)
-  }
+	if filtered, err := LessFilter(before, "less"); err == nil {
+		if filtered != after {
+			t.Errorf("LessFilter(%q) = %q, want %q", before, filtered, after)
+		}
+	} else {
+		t.Error(err)
+	}
 }

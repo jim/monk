@@ -2,7 +2,6 @@ package monk
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -18,7 +17,8 @@ type AssetCache struct {
 
 type Asset struct {
 	os.FileInfo
-	Content string
+	Content      string
+	Dependencies []string
 }
 
 func NewAssetCache(fs fileSystem) *AssetCache {
@@ -37,20 +37,20 @@ func (cache *AssetCache) SearchPath(dirpath string) (*AssetCache, error) {
 
 // Return the contents of a file based on its logical path. Loads the content from
 // disk if needed.
-func (fc *AssetCache) lookup(logicalPath string) (string, error) {
-	file, ok := fc.Store[logicalPath]
+func (fc *AssetCache) lookup(logicalPath string) (*Asset, error) {
+	asset, ok := fc.Store[logicalPath]
 	if ok {
-		return file.Content, nil
+		return asset, nil
 	}
 
 	asset, err := fc.findAssetInSearchPaths(logicalPath)
 
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	fc.Store[logicalPath] = asset
-	return asset.Content, nil
+	return asset, nil
 }
 
 func (ac *AssetCache) findAssetInSearchPaths(logicalPath string) (*Asset, error) {
@@ -67,29 +67,42 @@ func (ac *AssetCache) findAssetInSearchPaths(logicalPath string) (*Asset, error)
 		if os.IsNotExist(err) {
 
 			// Search the entire directory for a matching base name
-			asset, err := ac.searchDirectory("assets", logicalPath)
+			absPath, err := ac.searchDirectory("assets", logicalPath)
 			if err != nil {
 				continue
 			}
-			return asset, nil
+
+			return ac.createAsset(absPath, info)
+
 		}
 
-		// handle exact match
-		content, err := ac.loadAsset(absPath)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		return &Asset{info, content}, nil
+		// Found an exact match
+		info, _ = ac.fs.Stat(absPath)
+		return ac.createAsset(absPath, info)
 	}
 
 	return nil, fmt.Errorf("Could not find a file matching %q in %v", logicalPath, ac.SearchPaths)
 }
 
-func (ac *AssetCache) searchDirectory(dirPath string, logicalPath string) (*Asset, error) {
+// Create and return a pointer to a new Asset. The content of the file at absPath will
+// be used as the asset's contents.
+//
+// TODO passing both FileInfo and an absolute path here seems redundant.
+func (ac *AssetCache) createAsset(absPath string, info os.FileInfo) (*Asset, error) {
+	rawContent, err := ac.loadAssetContent(absPath)
+	if err != nil {
+		return nil, err
+	}
+	content, dependencies := extractDependencies(rawContent)
+	return &Asset{info, content, dependencies}, nil
+}
+
+// Iterates over the immediate child nodes of dirPath, returning the absolute path
+// to a matching file if one is found.
+func (ac *AssetCache) searchDirectory(dirPath string, logicalPath string) (string, error) {
 	files, err := ac.fs.ReadDir("assets")
 	if os.IsNotExist(err) {
-		return nil, err
+		return "", err
 	}
 
 	pattern := fmt.Sprintf(`^%s[\.\w+]+`, regexp.QuoteMeta(logicalPath))
@@ -97,23 +110,17 @@ func (ac *AssetCache) searchDirectory(dirPath string, logicalPath string) (*Asse
 	for _, fileInfo := range files {
 		name := fileInfo.Name()
 		if r.MatchString(name) {
-
 			absPath := path.Join(dirPath, name)
-			content, err := ac.loadAsset(absPath)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			return &Asset{fileInfo, content}, nil
+			return absPath, nil
 		}
 	}
-	return nil, fmt.Errorf("Could not find a file matching %s/%s", dirPath, logicalPath)
+	return "", fmt.Errorf("Could not find a file matching %s/%s", dirPath, logicalPath)
 }
 
 // Loads a file from filePath, filtering its contents through a series filters based
 // on the additional extensions in the filename. The first extension is assumed to
 // be the final type of the file.
-func (ac *AssetCache) loadAsset(filePath string) (string, error) {
+func (ac *AssetCache) loadAssetContent(filePath string) (string, error) {
 	bytes, err := ac.fs.ReadFile(filePath)
 	if err != nil {
 		return "", err

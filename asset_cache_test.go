@@ -77,7 +77,7 @@ func (fs TestFS) ReadDir(name string) ([]os.FileInfo, error) {
 	return files, nil
 }
 
-func TestLoadAsset(t *testing.T) {
+func TestLoadAssetContent(t *testing.T) {
 	fs := NewTestFS()
 	ac := NewAssetCache(fs)
 	assetContent := "//= require a"
@@ -86,7 +86,7 @@ func TestLoadAsset(t *testing.T) {
 	fs.File(assetPath, assetContent)
 	ac.SearchPath("assets")
 
-	if content, err := ac.loadAsset(assetPath); err == nil {
+	if content, err := ac.loadAssetContent(assetPath); err == nil {
 		if content != assetContent {
 			t.Errorf("requiring %q, want %q, got %q", assetPath, assetContent, content)
 		}
@@ -98,16 +98,15 @@ func TestLoadAsset(t *testing.T) {
 func TestSearchDirectory(t *testing.T) {
 	fs := NewTestFS()
 	ac := NewAssetCache(fs)
-	assetContent := "//= require a"
 	assetPath := "assets/simple.js"
 	query := "simple"
 
-	fs.File(assetPath, assetContent)
+	fs.File(assetPath, "")
 	ac.SearchPath("assets")
 
-	if asset, err := ac.searchDirectory("assets", query); err == nil {
-		if asset.Content != assetContent {
-			t.Errorf("searchDirectory(%q), want %q, got %q", query, assetContent, assetContent)
+	if absPath, err := ac.searchDirectory("assets", query); err == nil {
+		if absPath != assetPath {
+			t.Errorf("searchDirectory(%q), want %q, got %q", query, assetPath, absPath)
 		}
 	} else {
 		t.Error(err)
