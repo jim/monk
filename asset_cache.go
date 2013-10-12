@@ -136,7 +136,7 @@ func (ac *AssetCache) loadAsset(filePath string) (string, error) {
 	}
 
 	for _, ext := range exts {
-		filtered, err := filter(content, ext)
+		filtered, err := ApplyFilters(content, ext)
 		if err != nil {
 			return "", err
 		}
