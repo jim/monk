@@ -17,7 +17,11 @@ func main() {
 
 	cache.SearchPath(dir)
 
-	r.Resolve("a.js", cache)
+	err := r.Resolve("a.js", cache)
+
+	if err != nil {
+		panic(err)
+	}
 
 	for _, resolved := range r.Resolved {
 		fmt.Printf("%s ", resolved)

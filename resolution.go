@@ -15,14 +15,19 @@ type Resolution struct {
 func (r *Resolution) Resolve(assetPath string, cache *AssetCache) error {
 	r.Seen = append(r.Seen, assetPath)
 
-	asset, _ := cache.lookup(assetPath)
+	asset, err := cache.lookup(assetPath)
+	if err != nil {
+		return err
+	}
 
 	for _, edge := range asset.Dependencies {
 		if !contains(edge, r.Resolved) {
 			if contains(edge, r.Seen) {
 				return fmt.Errorf("circular dependency detected: %s <-> %s", assetPath, edge)
 			}
-			r.Resolve(edge, cache)
+			if err := r.Resolve(edge, cache); err != nil {
+				return err
+			}
 		}
 	}
 

@@ -46,6 +46,7 @@ func (fc *AssetCache) lookup(logicalPath string) (*Asset, error) {
 	asset, err := fc.findAssetInSearchPaths(logicalPath)
 
 	if err != nil {
+		/*fmt.Printf("lookup %q failed: %q\n", logicalPath, err.Error())*/
 		return nil, err
 	}
 
@@ -73,10 +74,10 @@ func (ac *AssetCache) findAssetInSearchPaths(logicalPath string) (*Asset, error)
 			}
 
 			return ac.createAsset(absPath, info)
-
 		}
 
 		// Found an exact match
+		/*fmt.Printf("Found an exact match for %q\n", absPath)*/
 		info, _ = ac.fs.Stat(absPath)
 		return ac.createAsset(absPath, info)
 	}
@@ -91,6 +92,7 @@ func (ac *AssetCache) findAssetInSearchPaths(logicalPath string) (*Asset, error)
 func (ac *AssetCache) createAsset(absPath string, info os.FileInfo) (*Asset, error) {
 	rawContent, err := ac.loadAssetContent(absPath)
 	if err != nil {
+		fmt.Printf("failed to load asset content for %q\n", absPath)
 		return nil, err
 	}
 	content, dependencies := extractDependencies(rawContent)
@@ -143,7 +145,7 @@ func (ac *AssetCache) loadAssetContent(filePath string) (string, error) {
 	}
 
 	for _, ext := range exts {
-		filtered, err := ApplyFilters(content, ext)
+		filtered, err := ApplyFilter(content, ext)
 		if err != nil {
 			return "", err
 		}

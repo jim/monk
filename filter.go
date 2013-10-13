@@ -8,21 +8,26 @@ import (
 	"strings"
 )
 
-type AssetFilter func(content string, extension string) (string, error)
+type AssetFilter interface {
+	Process(content string, extension string) (string, error)
+	CheckSystem() error
+}
 
 var filters = map[string]AssetFilter{}
 
 func init() {
-	AppendFilter("coffee", CoffeeFilter)
-	AppendFilter("less", LessFilter)
-	AppendFilter("tmpl", TemplateFilter)
+	AppendFilter("coffee", &CoffeeFilter{})
+	AppendFilter("less", &LessFilter{})
+	AppendFilter("tmpl", &TemplateFilter{})
 }
 
 func AppendFilter(extension string, filter AssetFilter) {
 	filters[extension] = filter
 }
 
-func CoffeeFilter(content string, extension string) (string, error) {
+type CoffeeFilter struct{}
+
+func (cf CoffeeFilter) Process(content string, extension string) (string, error) {
 	cmd := exec.Command("coffee", "-s", "-c")
 	cmd.Stdin = strings.NewReader(content)
 	var out bytes.Buffer
@@ -31,7 +36,13 @@ func CoffeeFilter(content string, extension string) (string, error) {
 	return out.String(), err
 }
 
-func LessFilter(content string, extension string) (string, error) {
+func (cf CoffeeFilter) CheckSystem() error {
+	return nil
+}
+
+type LessFilter struct{}
+
+func (lf LessFilter) Process(content string, extension string) (string, error) {
 	cmd := exec.Command("lessc", "-", "--compress")
 	cmd.Stdin = strings.NewReader(content)
 	var out bytes.Buffer
@@ -40,7 +51,14 @@ func LessFilter(content string, extension string) (string, error) {
 	return out.String(), err
 }
 
-func TemplateFilter(content string, extension string) (string, error) {
+func (lf LessFilter) CheckSystem() error {
+	cmd := exec.Command("which", "lessc")
+	return cmd.Run()
+}
+
+type TemplateFilter struct{}
+
+func (tf TemplateFilter) Process(content string, extension string) (string, error) {
 	tmpl := template.New("asset")
 
 	helpers := template.FuncMap{
@@ -61,11 +79,13 @@ func TemplateFilter(content string, extension string) (string, error) {
 	return out.String(), err
 }
 
-func ApplyFilters(content string, extension string) (string, error) {
-	for ext, filter := range filters {
-		if ext == extension {
-			return filter(content, extension)
-		}
+func (tf TemplateFilter) CheckSystem() error {
+	return nil
+}
+
+func ApplyFilter(content string, extension string) (string, error) {
+	if filter, ok := filters[extension]; ok {
+		return filter.Process(content, extension)
 	}
 	return "", fmt.Errorf("could not find a filter for extension: %q", extension)
 }

@@ -11,8 +11,8 @@ func TestLessFilter(t *testing.T) {
     }
   }`
 	after := ".foo .bar{width:100%}\n"
-
-	if filtered, err := LessFilter(before, "less"); err == nil {
+	filter := &LessFilter{}
+	if filtered, err := filter.Process(before, "less"); err == nil {
 		if filtered != after {
 			t.Errorf("LessFilter(%q) = %q, want %q", before, filtered, after)
 		}
