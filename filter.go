@@ -8,12 +8,29 @@ import (
 	"strings"
 )
 
-type AssetFilter interface {
+var filters = map[string]AssetProcessor{}
+
+type AssetProcessor interface {
 	Process(content string, extension string) (string, error)
 	CheckSystem() error
 }
 
-var filters = map[string]AssetFilter{}
+type AssetFilter struct{}
+
+func (af AssetFilter) CheckSystem() error {
+	return nil
+}
+
+func (af AssetFilter) RequireBin(bin string) error {
+	cmd := exec.Command("which", bin)
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err := cmd.Run()
+	if err != nil || strings.Contains(out.String(), "not found") {
+		return fmt.Errorf("The command %q was not found on your path", bin)
+	}
+	return nil
+}
 
 func init() {
 	AppendFilter("coffee", &CoffeeFilter{})
@@ -21,11 +38,16 @@ func init() {
 	AppendFilter("tmpl", &TemplateFilter{})
 }
 
-func AppendFilter(extension string, filter AssetFilter) {
+func AppendFilter(extension string, filter AssetProcessor) {
+	if err := filter.CheckSystem(); err != nil {
+		panic(err)
+	}
 	filters[extension] = filter
 }
 
-type CoffeeFilter struct{}
+type CoffeeFilter struct {
+	AssetFilter
+}
 
 func (cf CoffeeFilter) Process(content string, extension string) (string, error) {
 	cmd := exec.Command("coffee", "-s", "-c")
@@ -37,10 +59,12 @@ func (cf CoffeeFilter) Process(content string, extension string) (string, error)
 }
 
 func (cf CoffeeFilter) CheckSystem() error {
-	return nil
+	return cf.RequireBin("coffee")
 }
 
-type LessFilter struct{}
+type LessFilter struct {
+	AssetFilter
+}
 
 func (lf LessFilter) Process(content string, extension string) (string, error) {
 	cmd := exec.Command("lessc", "-", "--compress")
@@ -51,9 +75,12 @@ func (lf LessFilter) Process(content string, extension string) (string, error) {
 	return out.String(), err
 }
 
+func (a AssetProcessor) Foo() string {
+	return "foo"
+}
+
 func (lf LessFilter) CheckSystem() error {
-	cmd := exec.Command("which", "lessc")
-	return cmd.Run()
+	return lf.RequireBin("lessc")
 }
 
 type TemplateFilter struct{}
