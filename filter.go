@@ -75,10 +75,6 @@ func (lf LessFilter) Process(content string, extension string) (string, error) {
 	return out.String(), err
 }
 
-func (a AssetProcessor) Foo() string {
-	return "foo"
-}
-
 func (lf LessFilter) CheckSystem() error {
 	return lf.RequireBin("lessc")
 }

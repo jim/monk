@@ -17,7 +17,7 @@ func main() {
 
 	cache.SearchPath(dir)
 
-	err := r.Resolve("a.js", cache)
+	err := r.Resolve("e.js", cache)
 
 	if err != nil {
 		panic(err)

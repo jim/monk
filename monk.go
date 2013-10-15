@@ -2,8 +2,28 @@ package monk
 
 import (
 	"fmt"
+	"path"
+	"runtime"
 	"strings"
 )
+
+// Get the asset specified by assetPath.
+func Get(assetPath string) (string, error) {
+	cache := NewAssetCache(DiskFS{})
+
+	r := &Resolution{}
+
+	_, filepath, _, _ := runtime.Caller(0)
+	dir := path.Join(path.Dir(filepath), "assets")
+
+	cache.SearchPath(dir)
+
+	if err := r.Resolve(assetPath, cache); err != nil {
+		return "", err
+	}
+
+	return Build(r, cache), nil
+}
 
 func Build(r *Resolution, cache *AssetCache) string {
 	contents := make([]string, len(r.Resolved))

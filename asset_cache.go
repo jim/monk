@@ -107,7 +107,8 @@ func (ac *AssetCache) searchDirectory(dirPath string, logicalPath string) (strin
 		return "", err
 	}
 
-	pattern := fmt.Sprintf(`^%s[\.\w+]+`, regexp.QuoteMeta(logicalPath))
+	strippedPath := strings.TrimPrefix(logicalPath, "/")
+	pattern := fmt.Sprintf(`^%s[\.\w+]+`, regexp.QuoteMeta(strippedPath))
 	r, _ := regexp.Compile(pattern)
 	for _, fileInfo := range files {
 		name := fileInfo.Name()
