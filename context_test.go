@@ -79,7 +79,7 @@ func (fs TestFS) ReadDir(name string) ([]os.FileInfo, error) {
 
 func TestLoadAssetContent(t *testing.T) {
 	fs := NewTestFS()
-	ac := NewAssetCache(fs)
+	ac := NewContext(fs)
 	assetContent := "//= require a"
 	assetPath := "assets/simple.js"
 
@@ -97,7 +97,7 @@ func TestLoadAssetContent(t *testing.T) {
 
 func TestSearchDirectory(t *testing.T) {
 	fs := NewTestFS()
-	ac := NewAssetCache(fs)
+	ac := NewContext(fs)
 	assetPath := "assets/simple.js"
 	query := "simple"
 

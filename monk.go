@@ -9,7 +9,7 @@ import (
 
 // Get the asset specified by assetPath.
 func Get(assetPath string) (string, error) {
-	cache := NewAssetCache(DiskFS{})
+	cache := NewContext(DiskFS{})
 
 	r := &Resolution{}
 
@@ -25,10 +25,10 @@ func Get(assetPath string) (string, error) {
 	return Build(r, cache), nil
 }
 
-func Build(r *Resolution, cache *AssetCache) string {
+func Build(r *Resolution, context *Context) string {
 	contents := make([]string, len(r.Resolved))
 	for _, logicalPath := range r.Resolved {
-		asset, err := cache.lookup(logicalPath)
+		asset, err := context.lookup(logicalPath)
 		if err != nil {
 			panic(err)
 		}

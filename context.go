@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-type AssetCache struct {
+type Context struct {
 	fs          fileSystem
 	Store       map[string]*Asset
 	SearchPaths []string
@@ -21,76 +21,76 @@ type Asset struct {
 	Dependencies []string
 }
 
-func NewAssetCache(fs fileSystem) *AssetCache {
-	return &AssetCache{fs, make(map[string]*Asset), []string{}}
+func NewContext(fs fileSystem) *Context {
+	return &Context{fs, make(map[string]*Asset), []string{}}
 }
 
 // Append a path to the list of asset paths to be searched for assets.
-func (cache *AssetCache) SearchPath(dirpath string) (*AssetCache, error) {
+func (c *Context) SearchPath(dirpath string) (*Context, error) {
 	abs, err := filepath.Abs(dirpath)
 	if err != nil {
-		return cache, err
+		return c, err
 	}
-	cache.SearchPaths = append(cache.SearchPaths, abs)
-	return cache, nil
+	c.SearchPaths = append(c.SearchPaths, abs)
+	return c, nil
 }
 
 // Return the contents of a file based on its logical path. Loads the content from
 // disk if needed.
-func (fc *AssetCache) lookup(logicalPath string) (*Asset, error) {
-	asset, ok := fc.Store[logicalPath]
+func (c *Context) lookup(logicalPath string) (*Asset, error) {
+	asset, ok := c.Store[logicalPath]
 	if ok {
 		return asset, nil
 	}
 
-	asset, err := fc.findAssetInSearchPaths(logicalPath)
+	asset, err := c.findAssetInSearchPaths(logicalPath)
 
 	if err != nil {
 		/*fmt.Printf("lookup %q failed: %q\n", logicalPath, err.Error())*/
 		return nil, err
 	}
 
-	fc.Store[logicalPath] = asset
+	c.Store[logicalPath] = asset
 	return asset, nil
 }
 
-func (ac *AssetCache) findAssetInSearchPaths(logicalPath string) (*Asset, error) {
+func (c *Context) findAssetInSearchPaths(logicalPath string) (*Asset, error) {
 
-	if len(ac.SearchPaths) == 0 {
+	if len(c.SearchPaths) == 0 {
 		return nil, fmt.Errorf("No search paths have been defined.")
 	}
 
-	for _, searchPath := range ac.SearchPaths {
+	for _, searchPath := range c.SearchPaths {
 		absPath := path.Join(searchPath, logicalPath)
 
 		// Look for exact match
-		info, err := ac.fs.Stat(absPath)
+		info, err := c.fs.Stat(absPath)
 		if os.IsNotExist(err) {
 
 			// Search the entire directory for a matching base name
-			absPath, err := ac.searchDirectory("assets", logicalPath)
+			absPath, err := c.searchDirectory("assets", logicalPath)
 			if err != nil {
 				continue
 			}
 
-			return ac.createAsset(absPath, info)
+			return c.createAsset(absPath, info)
 		}
 
 		// Found an exact match
 		/*fmt.Printf("Found an exact match for %q\n", absPath)*/
-		info, _ = ac.fs.Stat(absPath)
-		return ac.createAsset(absPath, info)
+		info, _ = c.fs.Stat(absPath)
+		return c.createAsset(absPath, info)
 	}
 
-	return nil, fmt.Errorf("Could not find a file matching %q in %v", logicalPath, ac.SearchPaths)
+	return nil, fmt.Errorf("Could not find a file matching %q in %v", logicalPath, c.SearchPaths)
 }
 
 // Create and return a pointer to a new Asset. The content of the file at absPath will
 // be used as the asset's contents.
 //
 // TODO passing both FileInfo and an absolute path here seems redundant.
-func (ac *AssetCache) createAsset(absPath string, info os.FileInfo) (*Asset, error) {
-	rawContent, err := ac.loadAssetContent(absPath)
+func (c *Context) createAsset(absPath string, info os.FileInfo) (*Asset, error) {
+	rawContent, err := c.loadAssetContent(absPath)
 	if err != nil {
 		fmt.Printf("failed to load asset content for %q\n", absPath)
 		return nil, err
@@ -101,8 +101,8 @@ func (ac *AssetCache) createAsset(absPath string, info os.FileInfo) (*Asset, err
 
 // Iterates over the immediate child nodes of dirPath, returning the absolute path
 // to a matching file if one is found.
-func (ac *AssetCache) searchDirectory(dirPath string, logicalPath string) (string, error) {
-	files, err := ac.fs.ReadDir("assets")
+func (c *Context) searchDirectory(dirPath string, logicalPath string) (string, error) {
+	files, err := c.fs.ReadDir("assets")
 	if os.IsNotExist(err) {
 		return "", err
 	}
@@ -123,8 +123,8 @@ func (ac *AssetCache) searchDirectory(dirPath string, logicalPath string) (strin
 // Loads a file from filePath, filtering its contents through a series filters based
 // on the additional extensions in the filename. The first extension is assumed to
 // be the final type of the file.
-func (ac *AssetCache) loadAssetContent(filePath string) (string, error) {
-	bytes, err := ac.fs.ReadFile(filePath)
+func (c *Context) loadAssetContent(filePath string) (string, error) {
+	bytes, err := c.fs.ReadFile(filePath)
 	if err != nil {
 		return "", err
 	}

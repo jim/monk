@@ -12,10 +12,10 @@ type Resolution struct {
 // Resolve the asset at assetPath and its dependencies.
 //
 // TODO should return error
-func (r *Resolution) Resolve(assetPath string, cache *AssetCache) error {
+func (r *Resolution) Resolve(assetPath string, context *Context) error {
 	r.Seen = append(r.Seen, assetPath)
 
-	asset, err := cache.lookup(assetPath)
+	asset, err := context.lookup(assetPath)
 	if err != nil {
 		return err
 	}
@@ -25,7 +25,7 @@ func (r *Resolution) Resolve(assetPath string, cache *AssetCache) error {
 			if contains(edge, r.Seen) {
 				return fmt.Errorf("circular dependency detected: %s <-> %s", assetPath, edge)
 			}
-			if err := r.Resolve(edge, cache); err != nil {
+			if err := r.Resolve(edge, context); err != nil {
 				return err
 			}
 		}

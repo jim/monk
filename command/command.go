@@ -8,16 +8,16 @@ import (
 )
 
 func main() {
-	cache := monk.NewAssetCache(monk.DiskFS{})
+	context := monk.NewContext(monk.DiskFS{})
 
 	r := &monk.Resolution{}
 
 	_, filepath, _, _ := runtime.Caller(0)
 	dir := path.Join(path.Dir(filepath), "../assets")
 
-	cache.SearchPath(dir)
+	context.SearchPath(dir)
 
-	err := r.Resolve("e.js", cache)
+	err := r.Resolve("e.js", context)
 
 	if err != nil {
 		panic(err)
@@ -28,6 +28,6 @@ func main() {
 	}
 	fmt.Println()
 
-	built := monk.Build(r, cache)
+	built := monk.Build(r, context)
 	fmt.Println(built)
 }
