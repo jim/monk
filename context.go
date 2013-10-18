@@ -68,7 +68,7 @@ func (c *Context) findAssetInSearchPaths(logicalPath string) (*Asset, error) {
 		if os.IsNotExist(err) {
 
 			// Search the entire directory for a matching base name
-			absPath, err := c.searchDirectory("assets", logicalPath)
+			absPath, err := c.searchDirectory(searchPath, logicalPath)
 			if err != nil {
 				continue
 			}
@@ -102,7 +102,7 @@ func (c *Context) createAsset(absPath string, info os.FileInfo) (*Asset, error) 
 // Iterates over the immediate child nodes of dirPath, returning the absolute path
 // to a matching file if one is found.
 func (c *Context) searchDirectory(dirPath string, logicalPath string) (string, error) {
-	files, err := c.fs.ReadDir("assets")
+	files, err := c.fs.ReadDir(dirPath)
 	if os.IsNotExist(err) {
 		return "", err
 	}

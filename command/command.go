@@ -4,20 +4,59 @@ import (
 	"fmt"
 	"github.com/jim/monk"
 	"path"
-	"runtime"
+  "flag"
+  "strings"
+  "os"
 )
 
+type searchPaths []string
+var searchPathsFlag searchPaths
+
+func (sp *searchPaths) Set(searchPath string) error {
+    if !strings.HasPrefix(searchPath, "/") {
+	    dir, err := os.Getwd()
+      if err != nil {
+        return err
+      }
+      searchPath = path.Join(dir, searchPath)
+    }
+    *sp = append(*sp, searchPath)
+    return nil
+}
+
+func (sp *searchPaths) String() string {
+  return strings.Join(*sp, ",")
+}
+
+func init() {
+  flag.Var(&searchPathsFlag, "s", "path to search for assets when building")
+}
+
 func main() {
-	context := monk.NewContext(monk.DiskFS{})
+  flag.Parse()
+
+  if flag.NArg() == 0 {
+    printUsage()
+    return
+  }
 
 	r := &monk.Resolution{}
+	context := monk.NewContext(monk.DiskFS{})
 
-	_, filepath, _, _ := runtime.Caller(0)
-	dir := path.Join(path.Dir(filepath), "../assets")
+  if len(searchPathsFlag) == 0 {
+    panic("You must specify at least one path using -s")
+  }
 
-	context.SearchPath(dir)
+  for _, sPath := range searchPathsFlag {
+    context.SearchPath(sPath)
+  }
 
-	err := r.Resolve("e.js", context)
+  if flag.NArg() == 0 {
+    panic("You must specify the asset to build.")
+  }
+  asset := flag.Arg(0)
+
+	err := r.Resolve(asset, context)
 
 	if err != nil {
 		panic(err)
@@ -30,4 +69,10 @@ func main() {
 
 	built := monk.Build(r, context)
 	fmt.Println(built)
+}
+
+func printUsage() {
+  fmt.Println("monk, a tool to build assets")
+  fmt.Println("  usage: monk [OPTIONS] asset_to_build.ext\n")
+  flag.PrintDefaults()
 }
