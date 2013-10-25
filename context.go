@@ -99,6 +99,36 @@ func (c *Context) createAsset(absPath string, info os.FileInfo) (*Asset, error) 
 	return &Asset{info, content, dependencies}, nil
 }
 
+// Converts the wildcard/directory dependencies such as foo/* into an
+// explicit list of dependencies based on what files are currently
+// located at the provided path.
+func explodeDependencies(absPath string, dependencies []string, fs fileSystem) []string {
+  result := []string{}
+  for _, req := range dependencies {
+    if strings.HasSuffix(req, "/*") {
+      dirName := req[0:len(req)-2]
+
+      infos, err := fs.ReadDir(dirName)
+
+      // TODO return err instead of panicing.
+      if err != nil {
+        panic(err)
+      }
+
+      // get contents of directory, and add them (minus extensions) to result
+      for _, info := range infos {
+        if !info.IsDir() { // recursive requires not currently supported
+          fullPath := path.Join(dirName, info.Name())
+          result = append(result, fullPath)
+        }
+      }
+    } else {
+      result = append(result, req)
+    }
+  }
+  return result
+}
+
 // Iterates over the immediate child nodes of dirPath, returning the absolute path
 // to a matching file if one is found.
 func (c *Context) searchDirectory(dirPath string, logicalPath string) (string, error) {

@@ -112,3 +112,18 @@ func TestSearchDirectory(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func TestExplodeDepencies(t *testing.T) {
+	fs := NewTestFS()
+	fs.File("bar/1", "")
+	fs.File("bar/2", "")
+	fs.File("baz", "")
+
+  d := []string{"foo", "bar/*", "baz"}
+  dirPath := "assets"
+  exploded := explodeDependencies(dirPath, d, fs)
+  expected := []string{"foo", "bar/1", "bar/2", "baz"}
+  if !eq(expected, exploded) {
+    t.Errorf("explodeDependencies(%v) = %v, want %v", d, exploded, expected)
+  }
+}
