@@ -10,8 +10,6 @@ type Resolution struct {
 }
 
 // Resolve the asset at assetPath and its dependencies.
-//
-// TODO should return error
 func (r *Resolution) Resolve(assetPath string, context *Context) error {
 	r.Seen = append(r.Seen, assetPath)
 
