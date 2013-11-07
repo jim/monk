@@ -77,6 +77,27 @@ func (fs TestFS) ReadDir(name string) ([]os.FileInfo, error) {
 	return files, nil
 }
 
+func TestFindAssetInSearchPaths(t *testing.T) {
+	fs := NewTestFS()
+	ac := NewContext(fs)
+
+	fs.File("assets/simple.js", "")
+	needle := "simple"
+
+	_, err := ac.findAssetInSearchPaths(needle)
+
+	if err == nil || !strings.Contains(err.Error(), "No search paths") {
+		t.Errorf("should have required at least one search path to be defined, got: %s", err)
+	}
+
+	ac.SearchPath("assets")
+	_, err = ac.findAssetInSearchPaths(needle)
+
+	if err == nil || !strings.Contains(err.Error(), "extension is required") {
+		t.Errorf("should have required %s to have an extension", needle)
+	}
+}
+
 func TestLoadAssetContent(t *testing.T) {
 	fs := NewTestFS()
 	ac := NewContext(fs)
@@ -119,11 +140,11 @@ func TestExplodeDepencies(t *testing.T) {
 	fs.File("bar/2", "")
 	fs.File("baz", "")
 
-  d := []string{"foo", "bar/*", "baz"}
-  dirPath := "assets"
-  exploded := explodeDependencies(dirPath, d, fs)
-  expected := []string{"foo", "bar/1", "bar/2", "baz"}
-  if !eq(expected, exploded) {
-    t.Errorf("explodeDependencies(%v) = %v, want %v", d, exploded, expected)
-  }
+	d := []string{"foo", "bar/*", "baz"}
+	dirPath := "assets"
+	exploded := explodeDependencies(dirPath, d, fs)
+	expected := []string{"foo", "bar/1", "bar/2", "baz"}
+	if !eq(expected, exploded) {
+		t.Errorf("explodeDependencies(%v) = %v, want %v", d, exploded, expected)
+	}
 }

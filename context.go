@@ -37,6 +37,8 @@ func (c *Context) SearchPath(dirpath string) (*Context, error) {
 
 // Return the contents of a file based on its logical path. Loads the content from
 // disk if needed.
+//
+// logicalPath must have at least one extension.
 func (c *Context) lookup(logicalPath string) (*Asset, error) {
 	asset, ok := c.Store[logicalPath]
 	if ok {
@@ -59,6 +61,12 @@ func (c *Context) findAssetInSearchPaths(logicalPath string) (*Asset, error) {
 	if len(c.SearchPaths) == 0 {
 		return nil, fmt.Errorf("No search paths have been defined.")
 	}
+
+	if path.Ext(logicalPath) == "" {
+		return nil, fmt.Errorf("Can not find '%s'. An extension is required to find an asset.", logicalPath)
+	}
+
+	// assetPath must have at least one extension.
 
 	for _, searchPath := range c.SearchPaths {
 		absPath := path.Join(searchPath, logicalPath)
@@ -92,7 +100,7 @@ func (c *Context) findAssetInSearchPaths(logicalPath string) (*Asset, error) {
 func (c *Context) createAsset(absPath string, info os.FileInfo) (*Asset, error) {
 	rawContent, err := c.loadAssetContent(absPath)
 	if err != nil {
-		fmt.Printf("failed to load asset content for %q\n", absPath)
+		/*fmt.Printf("failed to load asset content for %q\n", absPath)*/
 		return nil, err
 	}
 	content, dependencies := extractDependencies(rawContent)
@@ -103,30 +111,30 @@ func (c *Context) createAsset(absPath string, info os.FileInfo) (*Asset, error) 
 // explicit list of dependencies based on what files are currently
 // located at the provided path.
 func explodeDependencies(absPath string, dependencies []string, fs fileSystem) []string {
-  result := []string{}
-  for _, req := range dependencies {
-    if strings.HasSuffix(req, "/*") {
-      dirName := req[0:len(req)-2]
+	result := []string{}
+	for _, req := range dependencies {
+		if strings.HasSuffix(req, "/*") {
+			dirName := req[0 : len(req)-2]
 
-      infos, err := fs.ReadDir(dirName)
+			infos, err := fs.ReadDir(dirName)
 
-      // TODO return err instead of panicing.
-      if err != nil {
-        panic(err)
-      }
+			// TODO return err instead of panicing.
+			if err != nil {
+				panic(err)
+			}
 
-      // get contents of directory, and add them (minus extensions) to result
-      for _, info := range infos {
-        if !info.IsDir() { // recursive requires not currently supported
-          fullPath := path.Join(dirName, info.Name())
-          result = append(result, fullPath)
-        }
-      }
-    } else {
-      result = append(result, req)
-    }
-  }
-  return result
+			// get contents of directory, and add them (minus extensions) to result
+			for _, info := range infos {
+				if !info.IsDir() { // recursive requires not currently supported
+					fullPath := path.Join(dirName, info.Name())
+					result = append(result, fullPath)
+				}
+			}
+		} else {
+			result = append(result, req)
+		}
+	}
+	return result
 }
 
 // Iterates over the immediate child nodes of dirPath, returning the absolute path
