@@ -62,11 +62,6 @@ func main() {
 		panic(err)
 	}
 
-	for _, resolved := range r.Resolved {
-		fmt.Printf("%s ", resolved)
-	}
-	fmt.Println()
-
 	built := monk.Build(r, context)
 	fmt.Println(built)
 }
