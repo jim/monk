@@ -27,11 +27,7 @@ func NewContext(fs fileSystem) *Context {
 
 // Append a path to the list of asset paths to be searched for assets.
 func (c *Context) SearchPath(dirpath string) (*Context, error) {
-	abs, err := filepath.Abs(dirpath)
-	if err != nil {
-		return c, err
-	}
-	c.SearchPaths = append(c.SearchPaths, abs)
+	c.SearchPaths = append(c.SearchPaths, filepath.Clean(dirpath))
 	return c, nil
 }
 
@@ -62,11 +58,10 @@ func (c *Context) findAssetInSearchPaths(logicalPath string) (*Asset, error) {
 		return nil, fmt.Errorf("No search paths have been defined.")
 	}
 
+	// logicalPath must have at least one extension.
 	if path.Ext(logicalPath) == "" {
 		return nil, fmt.Errorf("Can not find '%s'. An extension is required to find an asset.", logicalPath)
 	}
-
-	// assetPath must have at least one extension.
 
 	for _, searchPath := range c.SearchPaths {
 		absPath := path.Join(searchPath, logicalPath)
@@ -86,8 +81,11 @@ func (c *Context) findAssetInSearchPaths(logicalPath string) (*Asset, error) {
 
 		// Found an exact match
 		/*fmt.Printf("Found an exact match for %q\n", absPath)*/
-		info, _ = c.fs.Stat(absPath)
-		return c.createAsset(absPath, info)
+		info, err = c.fs.Stat(absPath)
+
+		if err == nil {
+			return c.createAsset(absPath, info)
+		}
 	}
 
 	return nil, fmt.Errorf("Could not find a file matching %q in %v", logicalPath, c.SearchPaths)
@@ -104,6 +102,14 @@ func (c *Context) createAsset(absPath string, info os.FileInfo) (*Asset, error) 
 		return nil, err
 	}
 	content, dependencies := extractDependencies(rawContent)
+
+	for i, dep := range dependencies {
+		if path.Ext(dep) == "" {
+			ext := strings.Split(path.Base(absPath), ".")[1]
+			dependencies[i] = fmt.Sprintf("%s.%s", dep, ext)
+		}
+	}
+
 	return &Asset{info, content, dependencies}, nil
 }
 

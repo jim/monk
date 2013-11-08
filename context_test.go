@@ -26,6 +26,32 @@ func TestFindAssetInSearchPaths(t *testing.T) {
 	}
 }
 
+func TestCreateAssetContent(t *testing.T) {
+	fs := NewTestFS()
+	c := NewContext(fs)
+
+	assetContent := "//= require a"
+	assetPath := "assets/simple.js"
+
+	fs.File(assetPath, assetContent)
+	c.SearchPath("assets")
+	expected := []string{"a.js"}
+
+	if info, err := fs.Stat(assetPath); err != nil {
+		t.Errorf("Unable to stat %q: %s", assetPath, err)
+	} else {
+
+		if asset, err := c.createAsset(assetPath, info); err != nil {
+			t.Errorf("Tried to create an asset, got: %s", err)
+		} else {
+			if !eq(asset.Dependencies, expected) {
+				t.Errorf("Expected dependencies to be %q, got %q", expected, asset.Dependencies)
+			}
+		}
+
+	}
+}
+
 func TestLoadAssetContent(t *testing.T) {
 	fs := NewTestFS()
 	ac := NewContext(fs)

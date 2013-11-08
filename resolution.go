@@ -24,7 +24,7 @@ func (r *Resolution) Resolve(assetPath string, context *Context) error {
 				return fmt.Errorf("circular dependency detected: %s <-> %s", assetPath, edge)
 			}
 			if err := r.Resolve(edge, context); err != nil {
-				return err
+				return fmt.Errorf("failed to resolve %q:, %s", edge, err.Error())
 			}
 		}
 	}

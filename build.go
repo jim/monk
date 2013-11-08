@@ -25,6 +25,7 @@ func Get(assetPath string) (string, error) {
 	return Build(r, cache), nil
 }
 
+// TODO should return an error
 func Build(r *Resolution, context *Context) string {
 	contents := make([]string, len(r.Resolved))
 	for _, logicalPath := range r.Resolved {
@@ -33,8 +34,8 @@ func Build(r *Resolution, context *Context) string {
 			panic(err)
 		}
 		header := fmt.Sprintf("/* %s */\n", logicalPath)
-		contents = append(contents, header, asset.Content)
+		contents = append(contents, header, asset.Content, "\n")
 	}
 
-	return strings.Join(contents, "\n")
+	return strings.Join(contents, "")
 }

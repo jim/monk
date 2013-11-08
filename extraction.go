@@ -7,7 +7,7 @@ import (
 // Parse an asset's dependencies and return the content stripped of these declarations,
 // along with a slice containing the dependencies that were declared.
 func extractDependencies(fileContents string) (string, []string) {
-	pattern := `//=\s*require\s+['"]?([\w\.]+)["']?\s*` + "\n?"
+	pattern := `(?m)^\s*//=\s*require\s+['"]?([\w\.]+)["']?\s*$?`
 	r, err := regexp.Compile(pattern)
 	if err != nil {
 		panic(err)
