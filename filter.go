@@ -86,9 +86,9 @@ func (tf TemplateFilter) Process(context *Context, content string, extension str
 	tmpl := template.New("asset")
 
 	helpers := template.FuncMap{
-		"url": func(assetPath string) (string, error) {
+		"url": func(logicalPath string) (string, error) {
 
-			absPath, _, err := context.findPathInSearchPaths(assetPath)
+			absPath, _, err := context.findPathInSearchPaths(logicalPath)
 			if err != nil {
 				return "", err
 			}
@@ -98,7 +98,7 @@ func (tf TemplateFilter) Process(context *Context, content string, extension str
 				return "", err
 			}
 
-			dir, file := filepath.Split(absPath)
+			dir, file := filepath.Split(logicalPath)
 			extension := filepath.Ext(file)
 			basename := file[:len(file)-len(extension)]
 
