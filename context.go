@@ -42,6 +42,7 @@ func (c *Context) lookup(logicalPath string) (*Asset, error) {
 	}
 
 	asset, err := c.findAssetInSearchPaths(logicalPath)
+	// this should return just the asset path, which can then be passed to createAsset
 
 	if err != nil {
 		/*fmt.Printf("lookup %q failed: %q\n", logicalPath, err.Error())*/
@@ -52,15 +53,15 @@ func (c *Context) lookup(logicalPath string) (*Asset, error) {
 	return asset, nil
 }
 
-func (c *Context) findAssetInSearchPaths(logicalPath string) (*Asset, error) {
-
+// TODO this should return a Match object that includes absPath and logicalPath
+func (c *Context) findPathInSearchPaths(logicalPath string) (string, os.FileInfo, error) {
 	if len(c.SearchPaths) == 0 {
-		return nil, fmt.Errorf("No search paths have been defined.")
+		return "", nil, fmt.Errorf("No search paths have been defined.")
 	}
 
 	// logicalPath must have at least one extension.
 	if path.Ext(logicalPath) == "" {
-		return nil, fmt.Errorf("Can not find '%s'. An extension is required to find an asset.", logicalPath)
+		return "", nil, fmt.Errorf("Can not find '%s'. An extension is required to find an asset.", logicalPath)
 	}
 
 	for _, searchPath := range c.SearchPaths {
@@ -76,19 +77,24 @@ func (c *Context) findAssetInSearchPaths(logicalPath string) (*Asset, error) {
 				continue
 			}
 
-			return c.createAsset(absPath, info)
+			return absPath, info, nil
 		}
 
 		// Found an exact match
 		/*fmt.Printf("Found an exact match for %q\n", absPath)*/
-		info, err = c.fs.Stat(absPath)
-
-		if err == nil {
-			return c.createAsset(absPath, info)
-		}
+		info, _ = c.fs.Stat(absPath)
+		return absPath, info, nil
 	}
 
-	return nil, fmt.Errorf("Could not find a file matching %q in %v", logicalPath, c.SearchPaths)
+	return "", nil, fmt.Errorf("Could not find a file matching %q in %v", logicalPath, c.SearchPaths)
+}
+
+func (c *Context) findAssetInSearchPaths(logicalPath string) (*Asset, error) {
+	absPath, info, err := c.findPathInSearchPaths(logicalPath)
+	if err != nil {
+		return nil, err
+	}
+	return c.createAsset(absPath, info)
 }
 
 // Create and return a pointer to a new Asset. The content of the file at absPath will
@@ -190,7 +196,7 @@ func (c *Context) loadAssetContent(filePath string) (string, error) {
 	}
 
 	for _, ext := range exts {
-		filtered, err := ApplyFilter(content, ext)
+		filtered, err := ApplyFilter(c, content, ext)
 		if err != nil {
 			return "", err
 		}

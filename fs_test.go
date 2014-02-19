@@ -1,6 +1,7 @@
 package monk
 
 import (
+	"bytes"
 	"os"
 	"path"
 	"strings"
@@ -24,16 +25,25 @@ type TestFileInfo struct {
 	isDir   bool
 }
 
-func NewTestFS() *TestFS {
-	return &TestFS{make(map[string]*TestFSFile)}
-}
-
 func (f TestFileInfo) Name() string       { return f.name }
 func (f TestFileInfo) Size() int64        { return f.size }
 func (f TestFileInfo) Mode() os.FileMode  { return f.mode }
 func (f TestFileInfo) ModTime() time.Time { return f.modTime }
 func (f TestFileInfo) IsDir() bool        { return f.isDir }
 func (f TestFileInfo) Sys() interface{}   { return nil }
+
+func NewTestFS() *TestFS {
+	return &TestFS{make(map[string]*TestFSFile)}
+}
+
+func (f TestFSFile) Close() error {
+	return nil
+}
+
+func (f TestFSFile) Read(b []byte) (n int, err error) {
+	reader := bytes.NewReader(f.content)
+	return reader.Read(b)
+}
 
 func (fs *TestFS) File(name string, content string) {
 	base := path.Base(name)
@@ -57,6 +67,13 @@ func (fs TestFS) Stat(name string) (os.FileInfo, error) {
 func (fs TestFS) ReadFile(name string) ([]byte, error) {
 	if file, ok := fs.files[name]; ok {
 		return file.content, nil
+	}
+	return nil, &os.PathError{"stat", name, os.ErrNotExist}
+}
+
+func (fs TestFS) Open(name string) (file, error) {
+	if file, ok := fs.files[name]; ok {
+		return file, nil
 	}
 	return nil, &os.PathError{"stat", name, os.ErrNotExist}
 }

@@ -11,7 +11,7 @@ source of d
 source of f
 
 /* e.js */
-doSomething('path-to-asset.jpg-fingerprint');
+doSomething('an-image-816d5e8b6e3e1b0f520d66e686e7c665.jpg');
 
 /* c.js */
 
@@ -49,9 +49,11 @@ func TestBuild(t *testing.T) {
 	fs.File("assets/b.js", "//= require c\n//= require c\n\nsource of b\n")
 	fs.File("assets/c.js", "//= require d\n//= require e\n")
 	fs.File("assets/d.js", "source of d\n")
-	fs.File("assets/e.js.tmpl", "//= require f\n\n"+`doSomething('{{url "path-to-asset.jpg" }}');`+"\n")
+	fs.File("assets/e.js.tmpl", "//= require f\n\n"+`doSomething('{{url "an-image.jpg" }}');`+"\n")
 	fs.File("assets/f.js", "source of f\n")
 	fs.File("assets/g.js.coffee", "class Foo\n  bar: (i) -> console.log i\n")
+
+	fs.File("assets/an-image.jpg", "a rather blurry shot\n")
 
 	context := NewContext(fs)
 	context.SearchPath("assets")

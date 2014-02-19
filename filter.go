@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"html/template"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
 var filters = map[string]AssetProcessor{}
 
 type AssetProcessor interface {
-	Process(content string, extension string) (string, error)
+	Process(context *Context, content string, extension string) (string, error)
 	CheckSystem() error
 }
 
@@ -49,7 +50,7 @@ type CoffeeFilter struct {
 	AssetFilter
 }
 
-func (cf CoffeeFilter) Process(content string, extension string) (string, error) {
+func (cf CoffeeFilter) Process(context *Context, content string, extension string) (string, error) {
 	cmd := exec.Command("coffee", "-s", "-c")
 	cmd.Stdin = strings.NewReader(content)
 	var out bytes.Buffer
@@ -66,7 +67,7 @@ type LessFilter struct {
 	AssetFilter
 }
 
-func (lf LessFilter) Process(content string, extension string) (string, error) {
+func (lf LessFilter) Process(context *Context, content string, extension string) (string, error) {
 	cmd := exec.Command("lessc", "-", "--compress")
 	cmd.Stdin = strings.NewReader(content)
 	var out bytes.Buffer
@@ -81,12 +82,27 @@ func (lf LessFilter) CheckSystem() error {
 
 type TemplateFilter struct{}
 
-func (tf TemplateFilter) Process(content string, extension string) (string, error) {
+func (tf TemplateFilter) Process(context *Context, content string, extension string) (string, error) {
 	tmpl := template.New("asset")
 
 	helpers := template.FuncMap{
 		"url": func(assetPath string) (string, error) {
-			return fmt.Sprintf("%s-%s", assetPath, "fingerprint"), nil
+
+			absPath, _, err := context.findPathInSearchPaths(assetPath)
+			if err != nil {
+				return "", err
+			}
+
+			fp, err := GenerateFingerprint(context.fs, absPath)
+			if err != nil {
+				return "", err
+			}
+
+			dir, file := filepath.Split(absPath)
+			extension := filepath.Ext(file)
+			basename := file[:len(file)-len(extension)]
+
+			return fmt.Sprintf("%s%s-%s%s", dir, basename, fp, extension), nil
 		},
 	}
 
@@ -106,9 +122,9 @@ func (tf TemplateFilter) CheckSystem() error {
 	return nil
 }
 
-func ApplyFilter(content string, extension string) (string, error) {
+func ApplyFilter(context *Context, content string, extension string) (string, error) {
 	if filter, ok := filters[extension]; ok {
-		return filter.Process(content, extension)
+		return filter.Process(context, content, extension)
 	}
 	return "", fmt.Errorf("could not find a filter for extension: %q", extension)
 }
