@@ -10,6 +10,7 @@ import (
 func main() {
 	cache := &monk.LocalCache{}
 	http.Handle("/assets/", http.StripPrefix("/assets/", logRequest(http.FileServer(cache))))
+	fmt.Println("Starting an asset server on port 8080...")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
