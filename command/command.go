@@ -47,7 +47,7 @@ func main() {
 
 	r := &monk.Resolution{}
 	context := monk.NewContext(monk.DiskFS{})
-  monk.Config.AssetRoot = assetRootFlag
+  context.Config.AssetRoot = assetRootFlag
 
 	if len(searchPathsFlag) == 0 {
 		panic("You must specify at least one path using -s")
