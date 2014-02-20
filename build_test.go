@@ -11,7 +11,7 @@ source of d
 source of f
 
 /* e.js */
-doSomething('an-image-816d5e8b6e3e1b0f520d66e686e7c665.jpg');
+doSomething('/my-assets/an-image-816d5e8b6e3e1b0f520d66e686e7c665.jpg');
 
 /* c.js */
 
@@ -57,6 +57,9 @@ func TestBuild(t *testing.T) {
 
 	context := NewContext(fs)
 	context.SearchPath("assets")
+
+	context.Config.Fingerprint = true
+	context.Config.AssetRoot = "/my-assets/"
 
 	r := &Resolution{}
 

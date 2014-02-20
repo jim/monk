@@ -93,16 +93,21 @@ func (tf TemplateFilter) Process(context *Context, content string, extension str
 				return "", err
 			}
 
-			fp, err := GenerateFingerprint(context.fs, absPath)
-			if err != nil {
-				return "", err
-			}
-
 			dir, file := filepath.Split(logicalPath)
 			extension := filepath.Ext(file)
 			basename := file[:len(file)-len(extension)]
+			root := context.Config.AssetRoot
 
-			return fmt.Sprintf("%s%s-%s%s", dir, basename, fp, extension), nil
+			if context.Config.Fingerprint {
+				fp, err := GenerateFingerprint(context.fs, absPath)
+				if err != nil {
+					return "", err
+				}
+
+				return fmt.Sprintf("%s%s%s-%s%s", root, dir, basename, fp, extension), nil
+			} else {
+				return fmt.Sprintf("%s%s%s%s", root, dir, basename, extension), nil
+			}
 		},
 	}
 

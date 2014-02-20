@@ -11,8 +11,6 @@ import (
 
 type searchPaths []string
 
-var searchPathsFlag searchPaths
-
 func (sp *searchPaths) Set(searchPath string) error {
 	if !strings.HasPrefix(searchPath, "/") {
 		dir, err := os.Getwd()
@@ -29,8 +27,14 @@ func (sp *searchPaths) String() string {
 	return strings.Join(*sp, ",")
 }
 
+var searchPathsFlag searchPaths
+
+var assetRootFlag string
+
+
 func init() {
 	flag.Var(&searchPathsFlag, "s", "path to search for assets when building")
+  flag.StringVar(&assetRootFlag, "r", "/assets/", "asset root used in compiled files")
 }
 
 func main() {
@@ -43,6 +47,7 @@ func main() {
 
 	r := &monk.Resolution{}
 	context := monk.NewContext(monk.DiskFS{})
+  monk.Config.AssetRoot = assetRootFlag
 
 	if len(searchPathsFlag) == 0 {
 		panic("You must specify at least one path using -s")

@@ -13,6 +13,7 @@ type Context struct {
 	fs          fileSystem
 	Store       map[string]*Asset
 	SearchPaths []string
+	Config      *Config
 }
 
 type Asset struct {
@@ -22,7 +23,7 @@ type Asset struct {
 }
 
 func NewContext(fs fileSystem) *Context {
-	return &Context{fs, make(map[string]*Asset), []string{}}
+	return &Context{fs, make(map[string]*Asset), []string{}, NewConfig()}
 }
 
 // Append a path to the list of asset paths to be searched for assets.
